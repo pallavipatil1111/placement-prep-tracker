@@ -107,6 +107,7 @@ async function busy(button, fn) {
 // ---------- auth ----------
 function showAuth() {
   state.me = null;
+  switchAuthTab(false);
   $(".topbar").hidden = true;
   $$(".view").forEach((v) => { v.hidden = true; });
   $("#view-auth").hidden = false;
