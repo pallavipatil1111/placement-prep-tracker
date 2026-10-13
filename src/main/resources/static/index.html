@@ -1,0 +1,272 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Placement Prep Tracker</title>
+  <meta name="description" content="Track job applications, revise DSA problems with spaced repetition and keep your practice streak.">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%234f46e5'/%3E%3Cpath d='M9 22l5-6 4 3 5-8' stroke='white' stroke-width='3' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="css/app.css">
+  <script type="module" src="js/app.js"></script>
+</head>
+<body>
+  <header class="topbar" hidden>
+    <div class="brand">
+      <span class="brand-mark" aria-hidden="true"></span>
+      <span>PrepTrack</span>
+    </div>
+    <nav class="tabs" aria-label="Sections">
+      <button class="tab" data-view="dashboard" aria-current="page">Dashboard</button>
+      <button class="tab" data-view="applications">Applications</button>
+      <button class="tab" data-view="problems">Problems <span class="tab-badge" id="due-badge" hidden></span></button>
+    </nav>
+    <div class="account">
+      <button class="btn ghost small" id="goal-button" title="Change your daily goal">Goal: <span id="goal-label">3</span>/day</button>
+      <span class="who" id="who"></span>
+      <button class="btn ghost small" id="logout">Log out</button>
+    </div>
+  </header>
+
+  <main>
+    <!-- Sign in / register -->
+    <section id="view-auth" class="auth" hidden>
+      <div class="auth-card">
+        <div class="brand big"><span class="brand-mark" aria-hidden="true"></span><span>PrepTrack</span></div>
+        <p class="lede">Your placement season in one place: every application, every solved problem, and a revision
+          schedule that makes sure you don't forget them before the interview.</p>
+        <div class="segmented" role="tablist">
+          <button role="tab" id="tab-login" aria-selected="true">Sign in</button>
+          <button role="tab" id="tab-register" aria-selected="false">Create account</button>
+        </div>
+        <form id="login-form" class="stack" novalidate>
+          <label>Email <input name="email" type="email" autocomplete="username" required></label>
+          <label>Password <input name="password" type="password" autocomplete="current-password" required></label>
+          <p class="form-error" role="alert"></p>
+          <button class="btn primary" type="submit">Sign in</button>
+          <button class="btn ghost" type="button" id="demo-login">Try the demo account</button>
+          <p class="hint">Demo: demo@prep.in / demo1234</p>
+        </form>
+        <form id="register-form" class="stack" novalidate hidden>
+          <label>Name <input name="name" autocomplete="name" required maxlength="80"></label>
+          <label>Email <input name="email" type="email" autocomplete="email" required></label>
+          <label>Password <input name="password" type="password" autocomplete="new-password" required minlength="8"></label>
+          <p class="form-error" role="alert"></p>
+          <button class="btn primary" type="submit">Create account</button>
+        </form>
+      </div>
+    </section>
+
+    <!-- Dashboard -->
+    <section id="view-dashboard" class="view" hidden>
+      <div class="page-head">
+        <div>
+          <h1>Dashboard</h1>
+          <p class="muted" id="today-label"></p>
+        </div>
+      </div>
+      <div class="stats">
+        <article class="card stat" id="stat-today">
+          <svg class="ring" viewBox="0 0 44 44" aria-hidden="true">
+            <circle class="ring-track" cx="22" cy="22" r="18"></circle>
+            <circle class="ring-fill" cx="22" cy="22" r="18"></circle>
+          </svg>
+          <div>
+            <h2>Today</h2>
+            <p class="stat-value"><span data-k="todayCount">0</span><small> / <span data-k="dailyGoal">3</span></small></p>
+            <p class="muted small" data-k="todayNote"></p>
+          </div>
+        </article>
+        <article class="card stat">
+          <div class="stat-icon flame" aria-hidden="true"></div>
+          <div>
+            <h2>Current streak</h2>
+            <p class="stat-value"><span data-k="currentStreak">0</span><small> days</small></p>
+            <p class="muted small">Longest: <span data-k="longestStreak">0</span> days</p>
+          </div>
+        </article>
+        <article class="card stat">
+          <div class="stat-icon check" aria-hidden="true"></div>
+          <div>
+            <h2>Problems solved</h2>
+            <p class="stat-value" data-k="totalSolved">0</p>
+            <p class="difficulty-split" id="difficulty-split"></p>
+          </div>
+        </article>
+        <article class="card stat">
+          <div class="stat-icon repeat" aria-hidden="true"></div>
+          <div>
+            <h2>Due for revision</h2>
+            <p class="stat-value" data-k="dueCount">0</p>
+            <button class="link" id="start-revision">Start revising →</button>
+          </div>
+        </article>
+        <article class="card stat">
+          <div class="stat-icon brief" aria-hidden="true"></div>
+          <div>
+            <h2>Applications</h2>
+            <p class="stat-value"><span data-k="activeApplications">0</span><small> active</small></p>
+            <p class="muted small"><span data-k="totalApplications">0</span> total · <span data-k="offers">0</span> offer(s)</p>
+          </div>
+        </article>
+      </div>
+
+      <article class="card">
+        <div class="card-head">
+          <h2>Practice activity</h2>
+          <p class="muted small" id="heatmap-summary"></p>
+        </div>
+        <div class="heatmap-wrap"><div id="heatmap" class="heatmap" role="img"></div></div>
+        <div class="legend" aria-hidden="true">Less <i class="l0"></i><i class="l1"></i><i class="l2"></i><i class="l3"></i><i class="l4"></i> More</div>
+      </article>
+
+      <div class="grid-2">
+        <article class="card">
+          <div class="card-head"><h2>Hiring funnel</h2><p class="muted small">How far your applications got</p></div>
+          <div id="funnel" class="funnel"></div>
+        </article>
+        <article class="card">
+          <div class="card-head"><h2>Topics covered</h2><p class="muted small">Solved problems per topic</p></div>
+          <div id="topics" class="bars"></div>
+        </article>
+      </div>
+
+      <div class="grid-2">
+        <article class="card">
+          <div class="card-head"><h2>Coming up</h2><p class="muted small">Next steps you've scheduled</p></div>
+          <ul id="upcoming" class="upcoming"></ul>
+        </article>
+        <article class="card">
+          <div class="card-head"><h2>Board at a glance</h2><p class="muted small">Applications in each stage</p></div>
+          <div id="by-stage" class="stage-strip"></div>
+        </article>
+      </div>
+    </section>
+
+    <!-- Applications -->
+    <section id="view-applications" class="view" hidden>
+      <div class="page-head">
+        <div>
+          <h1>Applications</h1>
+          <p class="muted">Drag a card to another column, or use its menu, to record progress.</p>
+        </div>
+        <div class="actions">
+          <input type="search" id="board-search" placeholder="Filter by company or role" aria-label="Filter applications">
+          <button class="btn primary" id="add-application">+ Add application</button>
+        </div>
+      </div>
+      <div class="board" id="board"></div>
+    </section>
+
+    <!-- Problems -->
+    <section id="view-problems" class="view" hidden>
+      <div class="page-head">
+        <div>
+          <h1>Problems</h1>
+          <p class="muted">Log what you solve; revise each one just before you would forget it.</p>
+        </div>
+        <div class="actions"><button class="btn primary" id="add-problem">+ Log a problem</button></div>
+      </div>
+
+      <article class="card">
+        <div class="card-head">
+          <h2>Revision queue</h2>
+          <p class="muted small">Re-solve from memory, then rate how it went. Scheduling uses the SM-2 algorithm.</p>
+        </div>
+        <ul id="due-list" class="due-list"></ul>
+      </article>
+
+      <article class="card">
+        <div class="card-head">
+          <h2>All problems</h2>
+          <div class="filters">
+            <input type="search" id="problem-search" placeholder="Search titles" aria-label="Search problems">
+            <select id="filter-topic" aria-label="Topic"><option value="">All topics</option></select>
+            <select id="filter-difficulty" aria-label="Difficulty"><option value="">All levels</option></select>
+          </div>
+        </div>
+        <div class="table-wrap">
+          <table class="table" id="problem-table">
+            <thead><tr><th>Problem</th><th>Topic</th><th>Level</th><th>Solved</th><th>Next revision</th><th>Ease</th><th></th></tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+        <p class="empty" id="problems-empty" hidden>No problems match. Log one with the button above.</p>
+      </article>
+    </section>
+  </main>
+
+  <!-- Application dialog -->
+  <dialog id="application-dialog" class="dialog">
+    <form method="dialog" id="application-form" class="stack" novalidate>
+      <h2 id="application-dialog-title">Add application</h2>
+      <div class="row">
+        <label>Company <input name="company" required maxlength="100"></label>
+        <label>Role <input name="jobTitle" required maxlength="100"></label>
+      </div>
+      <div class="row">
+        <label>Location <input name="location" maxlength="80" placeholder="Pune"></label>
+        <label>Source <select name="source"></select></label>
+      </div>
+      <div class="row">
+        <label>Stage <select name="stage"></select></label>
+        <label>Package (LPA) <input name="packageLpa" type="number" min="0" max="999.99" step="0.01" placeholder="6.5"></label>
+      </div>
+      <label>Job link <input name="jobUrl" type="url" maxlength="500" placeholder="https://"></label>
+      <div class="row">
+        <label>Next step <input name="nextStep" maxlength="120" placeholder="Technical round 2"></label>
+        <label>On <input name="nextStepOn" type="date"></label>
+      </div>
+      <label>Notes <textarea name="notes" rows="3" maxlength="1000"></textarea></label>
+      <div id="history" class="history" hidden></div>
+      <p class="form-error" role="alert"></p>
+      <div class="dialog-actions">
+        <button class="btn danger ghost" type="button" id="delete-application" hidden>Delete</button>
+        <span class="spacer"></span>
+        <button class="btn ghost" value="cancel" formnovalidate>Cancel</button>
+        <button class="btn primary" type="submit" value="save">Save</button>
+      </div>
+    </form>
+  </dialog>
+
+  <!-- Problem dialog -->
+  <dialog id="problem-dialog" class="dialog">
+    <form method="dialog" id="problem-form" class="stack" novalidate>
+      <h2>Log a solved problem</h2>
+      <label>Title <input name="title" required maxlength="150" placeholder="Longest Increasing Subsequence"></label>
+      <label>Link <input name="url" type="url" maxlength="500" placeholder="https://leetcode.com/problems/..."></label>
+      <div class="row">
+        <label>Platform <select name="platform"></select></label>
+        <label>Difficulty <select name="difficulty"></select></label>
+      </div>
+      <div class="row">
+        <label>Topic <select name="topic"></select></label>
+        <label>Solved on <input name="solvedOn" type="date"></label>
+      </div>
+      <label>Notes <textarea name="notes" rows="3" maxlength="1000" placeholder="Key idea, edge cases, complexity"></textarea></label>
+      <p class="form-error" role="alert"></p>
+      <div class="dialog-actions">
+        <span class="spacer"></span>
+        <button class="btn ghost" value="cancel" formnovalidate>Cancel</button>
+        <button class="btn primary" type="submit" value="save">Save</button>
+      </div>
+    </form>
+  </dialog>
+
+  <!-- Goal dialog -->
+  <dialog id="goal-dialog" class="dialog narrow">
+    <form method="dialog" id="goal-form" class="stack">
+      <h2>Daily goal</h2>
+      <p class="muted">How many problems do you want to solve or revise each day?</p>
+      <label>Problems per day <input name="dailyGoal" type="number" min="1" max="50" required></label>
+      <p class="form-error" role="alert"></p>
+      <div class="dialog-actions">
+        <span class="spacer"></span>
+        <button class="btn ghost" value="cancel" formnovalidate>Cancel</button>
+        <button class="btn primary" type="submit" value="save">Save</button>
+      </div>
+    </form>
+  </dialog>
+
+  <div class="toasts" id="toasts" aria-live="polite"></div>
+</body>
+</html>

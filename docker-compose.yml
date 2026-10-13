@@ -1,0 +1,34 @@
+# Runs the app against MySQL 8: docker compose up --build  ->  http://localhost:8080
+services:
+  db:
+    image: mysql:8.4
+    environment:
+      MYSQL_DATABASE: prep_tracker
+      MYSQL_USER: prep
+      MYSQL_PASSWORD: ${DB_PASSWORD:-prep}
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:-root}
+    volumes:
+      - db-data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-uprep", "-p${DB_PASSWORD:-prep}"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  app:
+    build: .
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      SPRING_PROFILES_ACTIVE: mysql
+      DB_URL: jdbc:mysql://db:3306/prep_tracker?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
+      DB_USER: prep
+      DB_PASSWORD: ${DB_PASSWORD:-prep}
+      JWT_SECRET: ${JWT_SECRET:-change-me-to-a-long-random-string-of-32-chars}
+      DEMO_DATA: ${DEMO_DATA:-true}
+    ports:
+      - "8080:8080"
+
+volumes:
+  db-data:
